@@ -41,29 +41,9 @@ readonly AUTO_FETCH=${HOMEBREW_AUTO_FETCH:-$(defaults read /Library/Preferences/
 readonly AUTO_UPGRADE=${HOMEBREW_AUTO_UPGRADE:-$(defaults read /Library/Preferences/com.apple.commerce AutoUpdate)}
 
 
-# == Sanity and runtime checks
-#
-# Don't run if auto-update is disabled
-if [ "$AUTO_UPDATE" != 1 ]; then
-  exit
-fi
-
-# Only run if GitHub is reachable
-if [ "$(scutil -r github.com)" != 'flags = Reachable' ]; then
-  exit
-fi
-
-# Check which Terminal app to open if notification is clicked by user
-for termapp in iTerm Terminal; do
-  if termapp_id=$(osascript -e "id of app \"$termapp\"" 2>/dev/null) && [ -n "$termapp_id" ]; then
-    break
-  fi
-done
-
-
 # == Functions
 #
-function show_notification () {
+function show_notification() {
   local notification_subtitle="$1"
   local notification_message="$2"
 
@@ -82,21 +62,68 @@ function show_notification () {
     >/dev/null
 }
 
-function brew_update(){
+function brew_update() {
   brew update 2>&1
 }
 
-function brew_outdated(){
+function brew_outdated() {
   brew outdated \
     | tr '\n' ' ' \
     | sed 's/ $//'
 }
 
+function is_empty() {
+  local var=$1
+
+  [[ -z $var  ]]
+}
+
+function is_not_empty() {
+  local var=$1
+
+  [[ -n $var  ]]
+}
+
+function is_github_reachable() {
+  local scutil_output="$(scutil -r github.com)"
+
+  if [ "$scutil_output" != 'flags = Reachable' ]; then
+    return 1
+  fi
+  return 0
+}
+
+function get_termapp_id(){
+  for termapp in iTerm Terminal; do
+    local termapp_id=$(osascript -e "id of app \"$termapp\"" 2>/dev/null)
+
+    if [ $termapp_id && is_not_empty $termapp_id ]; then
+      return $termapp_id
+    fi
+  done
+}
 
 
-# == Mains
+
+
+# == Main
 #
 main(){
+
+  # Don't run if auto-update is disabled
+  if [ "$AUTO_UPDATE" != 1 ]; then
+    exit
+  fi
+
+  # Only run if GitHub is reachable
+  if ! is_github_reachable; then
+    exit
+  fi
+
+  # Get the Terminal App ID to open if notification is clicked by user
+  local termapp_id=get_termapp_id
+
+
   # Run brew update and notify user if it failed
   local out=$(brew_update)
   if [ $? -ne 0 ] ; then
@@ -106,14 +133,11 @@ main(){
 
 
   # Determine which installed formulae are outdated
-  local outdated=$(brew_outdated)
-
-  # If no formulae are outdated...
-  if [ -z "$outdated" ]; then
-    # remove old notifications if there are no longer outdated packages
-    terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null
-    exit 0;
-  fi
+  # and remove old notifications if there are no longer outdated packages
+  local outdated="$(brew_outdated)"
+  is_empty "$outdated" \
+     && terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null \
+     && exit 0;
 
 
   # Upgrade outdated packages if auto-upgrade is enabled
@@ -138,12 +162,11 @@ main(){
 
   # Check if upgrades have been applied
   # (if user has clicked action 'YES' on the notification)
-  local new_outdated=$(brew_outdated)
-  if [ -z "$new_outdated" ]; then
-    # Notify it has been applied successfully
-    show_notification 'upgraded packages' "$outdated"
-  fi
-
-  exit 0;
+  # And notify it has been applied successfully
+  local new_outdated="$(brew_outdated)"
+  is_empty "$new_outdated" \
+    && show_notification 'upgraded packages' "$outdated"
 }
 main
+
+exit 0;
