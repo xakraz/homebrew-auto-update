@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # == Make the script fail fast
 # - Any error
@@ -36,6 +36,12 @@ NOTIFICATION_TITLE='Homebrew'
 auto_update=${HOMEBREW_AUTO_UPDATE:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticCheckEnabled)}
 auto_fetch=${HOMEBREW_AUTO_FETCH:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticDownload)}
 auto_upgrade=${HOMEBREW_AUTO_UPGRADE:-$(defaults read /Library/Preferences/com.apple.commerce AutoUpdate)}
+
+
+# == Immutable variables from the script
+#
+readonly PROGNAME=$(basename $0)
+readonly PROGDIR=$(readlink -m $(dirname $0))
 
 
 # == Sanity and runtime checks
@@ -116,4 +122,15 @@ fi
 
 # Notify user of outdated packages
 show_notification 'package updates available' "$outdated" "-closeLabel No -actions Yes -execute 'brew upgrade'"
+
+
+# Check if upgrades have been applied
+# (if user has clicked action 'YES' on the notification)
+new_outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
+if [ -z "$new_outdated" ]; then
+  # Notify it has been applied successfully
+  show_notification 'upgraded packages' "$outdated"
+fi
+
+exit 0;
 
