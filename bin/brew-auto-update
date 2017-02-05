@@ -52,7 +52,7 @@ if [ "$auto_update" != 1 ]; then
 fi
 
 # Only run if GitHub is reachable
-if [ "$(scutil -r github.com)" != 'Reachable' ]; then
+if [ "$(scutil -r github.com)" != 'flags = Reachable' ]; then
   exit
 fi
 
@@ -121,7 +121,9 @@ fi
 
 
 # Notify user of outdated packages
-show_notification 'package updates available' "$outdated" "-closeLabel No -actions Yes -execute 'brew upgrade'"
+show_notification 'package updates available' \
+  "$outdated" \
+  "-closeLabel No -actions Yes -execute '/usr/local/bin/brew upgrade'"
 
 
 # Check if upgrades have been applied
