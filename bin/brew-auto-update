@@ -11,9 +11,11 @@ set -o pipefail
 
 # == Define some variables
 #
+# Load Homebrew prefix
 PATH=/usr/local/bin:$PATH
 
-NOTIFICATION_GROUP='com.straxhaber.BrewAutoUpdate'
+# 'Terminal-notifier' config
+NOTIFICATION_GROUP='com.xakraz.BrewAutoUpdate'
 NOTIFICATION_SOUND='Glass'
 NOTIFICATION_TITLE='Homebrew'
 
@@ -25,6 +27,12 @@ NOTIFICATION_TITLE='Homebrew'
 # Homebrew: update -> fetch    -> upgrade
 # OS X:     check  -> download -> update
 #
+# The following environment variables HOMEBREW_AUTO_XXX can be set with the `launchctl` utility
+# or permanently in config files.
+#
+# http://www.launchd.info/
+# - Tab 'Configuration'
+# - Section 'Setting environment variables:'
 auto_update=${HOMEBREW_AUTO_UPDATE:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticCheckEnabled)}
 auto_fetch=${HOMEBREW_AUTO_FETCH:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticDownload)}
 auto_upgrade=${HOMEBREW_AUTO_UPGRADE:-$(defaults read /Library/Preferences/com.apple.commerce AutoUpdate)}
@@ -55,6 +63,9 @@ done
 function show_notification () {
   notification_subtitle="$1"
   notification_message="$2"
+
+  shift
+  shift
   other="$@"
 
   terminal-notifier \
@@ -89,8 +100,8 @@ if [ -z "$outdated" ]; then
 fi
 
 
+# Upgrade outdated packages if auto-upgrade is enabled
 if [ "$auto_upgrade" = 1 ]; then
-  # Upgrade outdated packages if auto-upgrade is enabled
   brew upgrade $outdated || :
   show_notification 'upgraded packages' "$outdated"
   exit 0;
