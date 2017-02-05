@@ -12,12 +12,15 @@ set -o pipefail
 # == Define some variables
 #
 # Load Homebrew prefix
-PATH=/usr/local/bin:$PATH
+readonly PATH=/usr/local/bin:$PATH
 
 # 'Terminal-notifier' config
-NOTIFICATION_GROUP='com.xakraz.BrewAutoUpdate'
-NOTIFICATION_SOUND='Glass'
-NOTIFICATION_TITLE='Homebrew'
+readonly NOTIFICATION_GROUP='com.xakraz.BrewAutoUpdate'
+readonly NOTIFICATION_SOUND='Glass'
+readonly NOTIFICATION_TITLE='Homebrew'
+
+readonly PROGNAME=$(basename $0)
+readonly PROGDIR=$(readlink -m $(dirname $0))
 
 
 # == Check OS X system settings.
@@ -33,21 +36,15 @@ NOTIFICATION_TITLE='Homebrew'
 # http://www.launchd.info/
 # - Tab 'Configuration'
 # - Section 'Setting environment variables:'
-auto_update=${HOMEBREW_AUTO_UPDATE:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticCheckEnabled)}
-auto_fetch=${HOMEBREW_AUTO_FETCH:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticDownload)}
-auto_upgrade=${HOMEBREW_AUTO_UPGRADE:-$(defaults read /Library/Preferences/com.apple.commerce AutoUpdate)}
-
-
-# == Immutable variables from the script
-#
-readonly PROGNAME=$(basename $0)
-readonly PROGDIR=$(readlink -m $(dirname $0))
+readonly AUTO_UPDATE=${HOMEBREW_AUTO_UPDATE:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticCheckEnabled)}
+readonly AUTO_FETCH=${HOMEBREW_AUTO_FETCH:-$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticDownload)}
+readonly AUTO_UPGRADE=${HOMEBREW_AUTO_UPGRADE:-$(defaults read /Library/Preferences/com.apple.commerce AutoUpdate)}
 
 
 # == Sanity and runtime checks
 #
 # Don't run if auto-update is disabled
-if [ "$auto_update" != 1 ]; then
+if [ "$AUTO_UPDATE" != 1 ]; then
   exit
 fi
 
@@ -107,7 +104,7 @@ fi
 
 
 # Upgrade outdated packages if auto-upgrade is enabled
-if [ "$auto_upgrade" = 1 ]; then
+if [ "$AUTO_UPGRADE" = 1 ]; then
   brew upgrade $outdated || :
   show_notification 'upgraded packages' "$outdated"
   exit 0;
@@ -115,7 +112,7 @@ fi
 
 
 # Fetch outdated packages if auto-fetch is enabled
-if [ "$auto_fetch" = 1 ]; then
+if [ "$AUTO_FETCH" = 1 ]; then
   brew fetch $outdated || :
 fi
 
