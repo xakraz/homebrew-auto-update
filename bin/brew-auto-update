@@ -82,17 +82,31 @@ function show_notification () {
     >/dev/null
 }
 
+function brew_update(){
+  brew update 2>&1
+}
 
+function brew_outdated(){
+  brew outdated \
+    | tr '\n' ' ' \
+    | sed 's/ $//'
+}
+
+
+
+# == Mains
+#
 main(){
   # Run brew update and notify user if it failed
-  if ! out=$(brew update 2>&1); then
+  local out=$(brew_update)
+  if [ $? -ne 0 ] ; then
     show_notification 'update failed' "$out"
     exit 1
   fi
 
 
   # Determine which installed formulae are outdated
-  outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
+  local outdated=$(brew_outdated)
 
   # If no formulae are outdated...
   if [ -z "$outdated" ]; then
@@ -124,7 +138,7 @@ main(){
 
   # Check if upgrades have been applied
   # (if user has clicked action 'YES' on the notification)
-  new_outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
+  local new_outdated=$(brew_outdated)
   if [ -z "$new_outdated" ]; then
     # Notify it has been applied successfully
     show_notification 'upgraded packages' "$outdated"
