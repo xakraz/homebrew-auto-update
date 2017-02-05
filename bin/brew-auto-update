@@ -55,6 +55,8 @@ done
 function show_notification () {
   notification_subtitle="$1"
   notification_message="$2"
+  other="$@"
+
   terminal-notifier \
     -group "$NOTIFICATION_GROUP" \
     -sound "$NOTIFICATION_SOUND" \
@@ -62,6 +64,7 @@ function show_notification () {
     -subtitle "$notification_subtitle" \
     -message "$notification_message" \
     -activate "$termapp_id" \
+    $other \
     >/dev/null
 }
 
@@ -74,30 +77,32 @@ if ! out=$(brew update 2>&1); then
   exit 1
 fi
 
-# Determine if any formulae were updated
-if printf "%s" "$out" | grep 'Already up-to-date.'; then
-  updated=false
-else
-  updated=true
-fi
 
 # Determine which installed formulae are outdated
 outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
-if [ -n "$outdated" ]; then
 
-	if [ "$auto_fetch" = 1 ]; then
-		brew fetch $outdated || :
-	fi
-
-	terminal-notifier \
-		-group 'org.eisentraut.BrewAutoUpdate' \
-		-sound 'Bottle' \
-		-title 'Homebrew' \
-		-subtitle 'Package updates available' \
-		-message "$outdated" \
-		-activate "$termapp_id" \
-		>/dev/null
-
-else
-	terminal-notifier -remove 'org.eisentraut.BrewAutoUpdate' >/dev/null
+# If no formulae are outdated...
+if [ -z "$outdated" ]; then
+  # remove old notifications if there are no longer outdated packages
+  terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null
+  exit 0;
 fi
+
+
+if [ "$auto_upgrade" = 1 ]; then
+  # Upgrade outdated packages if auto-upgrade is enabled
+  brew upgrade $outdated || :
+  show_notification 'upgraded packages' "$outdated"
+  exit 0;
+fi
+
+
+# Fetch outdated packages if auto-fetch is enabled
+if [ "$auto_fetch" = 1 ]; then
+  brew fetch $outdated || :
+fi
+
+
+# Notify user of outdated packages
+show_notification 'package updates available' "$outdated" "-closeLabel No -actions Yes -execute 'brew upgrade'"
+
