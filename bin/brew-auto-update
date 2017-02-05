@@ -83,53 +83,53 @@ function show_notification () {
 }
 
 
-# == Script section
-#
-# Run brew update and notify user if it failed
-if ! out=$(brew update 2>&1); then
-  show_notification 'update failed' "$out"
-  exit 1
-fi
+main(){
+  # Run brew update and notify user if it failed
+  if ! out=$(brew update 2>&1); then
+    show_notification 'update failed' "$out"
+    exit 1
+  fi
 
 
-# Determine which installed formulae are outdated
-outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
+  # Determine which installed formulae are outdated
+  outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
 
-# If no formulae are outdated...
-if [ -z "$outdated" ]; then
-  # remove old notifications if there are no longer outdated packages
-  terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null
+  # If no formulae are outdated...
+  if [ -z "$outdated" ]; then
+    # remove old notifications if there are no longer outdated packages
+    terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null
+    exit 0;
+  fi
+
+
+  # Upgrade outdated packages if auto-upgrade is enabled
+  if [ "$AUTO_UPGRADE" = 1 ]; then
+    brew upgrade $outdated || :
+    show_notification 'upgraded packages' "$outdated"
+    exit 0;
+  fi
+
+
+  # Fetch outdated packages if auto-fetch is enabled
+  if [ "$AUTO_FETCH" = 1 ]; then
+    brew fetch $outdated || :
+  fi
+
+
+  # Notify user of outdated packages
+  show_notification 'package updates available' \
+    "$outdated" \
+    "-closeLabel No -actions Yes -execute '/usr/local/bin/brew upgrade'"
+
+
+  # Check if upgrades have been applied
+  # (if user has clicked action 'YES' on the notification)
+  new_outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
+  if [ -z "$new_outdated" ]; then
+    # Notify it has been applied successfully
+    show_notification 'upgraded packages' "$outdated"
+  fi
+
   exit 0;
-fi
-
-
-# Upgrade outdated packages if auto-upgrade is enabled
-if [ "$AUTO_UPGRADE" = 1 ]; then
-  brew upgrade $outdated || :
-  show_notification 'upgraded packages' "$outdated"
-  exit 0;
-fi
-
-
-# Fetch outdated packages if auto-fetch is enabled
-if [ "$AUTO_FETCH" = 1 ]; then
-  brew fetch $outdated || :
-fi
-
-
-# Notify user of outdated packages
-show_notification 'package updates available' \
-  "$outdated" \
-  "-closeLabel No -actions Yes -execute '/usr/local/bin/brew upgrade'"
-
-
-# Check if upgrades have been applied
-# (if user has clicked action 'YES' on the notification)
-new_outdated=$(brew outdated | tr '\n' ' ' | sed 's/ $//')
-if [ -z "$new_outdated" ]; then
-  # Notify it has been applied successfully
-  show_notification 'upgraded packages' "$outdated"
-fi
-
-exit 0;
-
+}
+main
