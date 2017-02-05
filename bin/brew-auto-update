@@ -64,12 +64,12 @@ done
 # == Functions
 #
 function show_notification () {
-  notification_subtitle="$1"
-  notification_message="$2"
+  local notification_subtitle="$1"
+  local notification_message="$2"
 
   shift
   shift
-  other="$@"
+  local other="$@"
 
   terminal-notifier \
     -group "$NOTIFICATION_GROUP" \
