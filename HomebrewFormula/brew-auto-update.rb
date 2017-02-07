@@ -8,8 +8,10 @@ class BrewAutoUpdate < Formula
 
   def install
     inreplace 'bin/brew-auto-update', '/usr/local', HOMEBREW_PREFIX
+    inreplace 'bin/brew-upgrade', '/usr/local', HOMEBREW_PREFIX
     prefix.install 'bin'
     (bin/'brew-auto-update').chmod 0755
+    (bin/'brew-upgrade').chmod 0755
   end
 
   plist_options startup: false

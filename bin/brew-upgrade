@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# == Make the script fail fast
+# - Any error
+# - Any unbound variables
+# - SubShell failed
+set -e
+set -u
+set -o pipefail
+
+
+# == Define some variables
+#
+# Load Homebrew prefix
+readonly PATH=/usr/local/bin:$PATH
+
+
+main(){
+  # Run the upgrade
+  brew upgrade 2>&1
+  if [ $? -ne 0 ]; then
+    echo "Upgrade failed"
+    exit 2;
+  fi
+}
+main
+
+exit 0;

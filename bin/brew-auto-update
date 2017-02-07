@@ -95,11 +95,10 @@ function is_github_reachable() {
 
 function get_termapp_id(){
   for termapp in iTerm Terminal; do
-    local termapp_id=$(osascript -e "id of app \"$termapp\"" 2>/dev/null)
+    local termapp_id="$(osascript -e "id of app \"$termapp\"" 2>/dev/null)"
 
-    if [ $termapp_id && is_not_empty $termapp_id ]; then
-      return $termapp_id
-    fi
+    is_not_empty $termapp_id \
+      && echo "$termapp_id"
   done
 }
 
@@ -112,21 +111,27 @@ main(){
 
   # Don't run if auto-update is disabled
   if [ "$AUTO_UPDATE" != 1 ]; then
+    echo "Auto-updates are disabled - Exiting"
     exit
   fi
 
   # Only run if GitHub is reachable
   if ! is_github_reachable; then
+    echo "Github.com is not reachable - Exiting"
     exit
   fi
 
   # Get the Terminal App ID to open if notification is clicked by user
-  local termapp_id=get_termapp_id
+  echo "Getting Terminal App ID"
+  local termapp_id=$(get_termapp_id)
+  echo "termapp_id: $termapp_id"
 
 
   # Run brew update and notify user if it failed
+  echo "Updating Brew formulae"
   local out=$(brew_update)
   if [ $? -ne 0 ] ; then
+    echo "update failed - Exiting"
     show_notification 'update failed' "$out"
     exit 1
   fi
@@ -135,13 +140,16 @@ main(){
   # Determine which installed formulae are outdated
   # and remove old notifications if there are no longer outdated packages
   local outdated="$(brew_outdated)"
+  echo "Outdated formulae: ${outdated}"
   is_empty "$outdated" \
      && terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null \
+     && echo "No updates available - Exiting" \
      && exit 0;
 
 
   # Upgrade outdated packages if auto-upgrade is enabled
   if [ "$AUTO_UPGRADE" = 1 ]; then
+    echo "Auto-upgrade enabled - Upgrading packages"
     brew upgrade $outdated || :
     show_notification 'upgraded packages' "$outdated"
     exit 0;
@@ -150,22 +158,28 @@ main(){
 
   # Fetch outdated packages if auto-fetch is enabled
   if [ "$AUTO_FETCH" = 1 ]; then
+    echo "Auto-fetch enabled - Fetching new package first"
     brew fetch $outdated || :
   fi
 
 
   # Notify user of outdated packages
+  echo "Display notifications to user"
   show_notification 'package updates available' \
     "$outdated" \
-    "-closeLabel No -actions Yes -execute '/usr/local/bin/brew upgrade'"
+    "-closeLabel No -actions Yes -execute ${PROGDIR}/brew-upgrade"
 
 
   # Check if upgrades have been applied
   # (if user has clicked action 'YES' on the notification)
   # And notify it has been applied successfully
   local new_outdated="$(brew_outdated)"
+  echo "New_Outdated formulae: ${new_outdated}"
   is_empty "$new_outdated" \
-    && show_notification 'upgraded packages' "$outdated"
+    && show_notification 'upgraded packages' "$outdated" \
+    && echo "Upgrades applied"
+
+  echo "Done"
 }
 main
 
