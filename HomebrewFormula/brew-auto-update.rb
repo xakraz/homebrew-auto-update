@@ -26,7 +26,7 @@ class BrewAutoUpdate < Formula
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
-      <string>/usr/local/opt/coreutils/libexec/gnubin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
+      <string>#{HOMEBREW_PREFIX}/opt/coreutils/libexec/gnubin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
     <key>Label</key>
     <string>#{plist_name}</string>
@@ -52,10 +52,10 @@ class BrewAutoUpdate < Formula
     <true/>
 
     <key>StandardOutPath</key>
-    <string>~/Library/Logs/brew-auto-update/update.log</string>
+    <string>#{ENV['HOME']}/Library/Logs/brew-auto-update/update.log</string>
 
     <key>StandardErrorPath</key>
-    <string>~/Library/Logs/brew-auto-update/update.log</string>
+    <string>#{ENV['HOME']}/Library/Logs/brew-auto-update/update.log</string>
   </dict>
 </plist>
 EOS
