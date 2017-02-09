@@ -5,6 +5,7 @@ class BrewAutoUpdate < Formula
   head 'https://github.com/xakraz/homebrew-auto-update.git', :branch => 'master'
 
   depends_on 'terminal-notifier'
+  depends_on 'coreutils'
 
   def install
     inreplace 'bin/brew-auto-update', '/usr/local', HOMEBREW_PREFIX
@@ -22,6 +23,11 @@ class BrewAutoUpdate < Formula
 
 <plist version="1.0">
   <dict>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PATH</key>
+      <string>/usr/local/opt/coreutils/libexec/gnubin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
+    </dict>
     <key>Label</key>
     <string>#{plist_name}</string>
 
@@ -35,9 +41,9 @@ class BrewAutoUpdate < Formula
 
     <key>StartCalendarInterval</key>
     <dict>
-      <!-- 7:00am each day -->
+      <!-- 1:00pm each day -->
       <key>Hour</key>
-      <integer>7</integer>
+      <integer>13</integer>
       <key>Minute</key>
       <integer>0</integer>
     </dict>
