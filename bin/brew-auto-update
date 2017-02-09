@@ -98,7 +98,8 @@ function get_termapp_id(){
     local termapp_id="$(osascript -e "id of app \"$termapp\"" 2>/dev/null)"
 
     is_not_empty $termapp_id \
-      && echo "$termapp_id"
+      && echo "$termapp_id" \
+      && break
   done
 }
 
