@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 #
+#
 # == Make the script fail fast
+#
 # - Any error
 # - Any unbound variables
 # - SubShell failed
-set -e
-set -u
+#
+set -o errexit
+set -o nounset
 set -o pipefail
 
 
@@ -109,63 +112,78 @@ function get_termapp_id(){
 # == Main
 #
 main(){
+  echo "===> ${PROGNAME}: Start"
+
+
+  echo "---> Preflight checks:"
 
   # Don't run if auto-update is disabled
+  echo -n "     * Auto-updates: "
   if [ "$AUTO_UPDATE" != 1 ]; then
-    echo "Auto-updates are disabled - Exiting"
+    echo "Disabled - Exiting"
     exit
   fi
+  echo "Enabled"
 
   # Only run if GitHub is reachable
+  echo -n "     * Github.com: "
   if ! is_github_reachable; then
-    echo "Github.com is not reachable - Exiting"
+    echo "Not reachable - Exiting"
     exit
   fi
+  echo "Is reachable"
+
 
   # Get the Terminal App ID to open if notification is clicked by user
-  echo "Getting Terminal App ID"
+  echo "---> Getting Terminal App ID"
   local termapp_id=$(get_termapp_id)
-  echo "termapp_id: $termapp_id"
+  echo "     * termapp_id: $termapp_id"
 
 
   # Run brew update and notify user if it failed
-  echo "Updating Brew formulae"
+  echo "---> Updating Brew formulae"
   local out=$(brew_update)
   if [ $? -ne 0 ] ; then
-    echo "update failed - Exiting"
+    echo "     * Update failed - Exiting"
     show_notification 'update failed' "$out"
     exit 1
   fi
+  echo "     * Updated successfully"
 
 
   # Determine which installed formulae are outdated
   # and remove old notifications if there are no longer outdated packages
+  echo "---> Checking for outdated formulaes"
   local outdated="$(brew_outdated)"
-  echo "Outdated formulae: ${outdated}"
+  echo "     * Outdated formulae: ${outdated}"
   is_empty "$outdated" \
      && terminal-notifier -remove "$NOTIFICATION_GROUP" >/dev/null \
-     && echo "No updates available - Exiting" \
+     && echo "     * No updates available - Exiting" \
      && exit 0;
 
 
   # Upgrade outdated packages if auto-upgrade is enabled
+  echo "---> Upgrading formulaes"
   if [ "$AUTO_UPGRADE" = 1 ]; then
-    echo "Auto-upgrade enabled - Upgrading packages"
+    echo "     * Auto-upgrade enabled - Upgrading packages"
     brew upgrade $outdated || :
     show_notification 'upgraded packages' "$outdated"
     exit 0;
   fi
+  echo "     * Auto-upgrade disabled - Just notifying"
 
 
   # Fetch outdated packages if auto-fetch is enabled
+  echo "---> Fetching packages"
   if [ "$AUTO_FETCH" = 1 ]; then
-    echo "Auto-fetch enabled - Fetching new package first"
+    echo "     * Auto-fetch enabled - Fetching new package first"
     brew fetch $outdated || :
   fi
+  echo "     * Auto-fetch disabled - NOT Fetching new package"
 
 
   # Notify user of outdated packages
-  echo "Display notifications to user"
+  echo "---> Display notifications to user"
   show_notification 'package updates available' \
     "$outdated" \
     "-closeLabel No -actions Yes -execute ${PROGDIR}/brew-upgrade"
@@ -174,13 +192,15 @@ main(){
   # Check if upgrades have been applied
   # (if user has clicked action 'YES' on the notification)
   # And notify it has been applied successfully
+  echo "---> Checking if upgrades have been applied"
   local new_outdated="$(brew_outdated)"
-  echo "New_Outdated formulae: ${new_outdated}"
+  echo "     * New_Outdated formulae: ${new_outdated}"
   is_empty "$new_outdated" \
     && show_notification 'upgraded packages' "$outdated" \
-    && echo "Upgrades applied"
+    && echo "     * Upgrades applied" \
+    || echo "     * Upgrades pending"
 
-  echo "Done"
+  echo "===> ${PROGNAME}Done"
 }
 main
 
